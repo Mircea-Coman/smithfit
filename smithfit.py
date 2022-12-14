@@ -76,6 +76,9 @@ if __name__ == "__main__":
     parser.add_argument("-footer", nargs = '?', metavar='N',  type=int, help="Remove the last N data points", default=footer)
     parser.add_argument("-every", nargs = '?', metavar='N', type=int, help="Sample every N data points", default=every)
     parser.add_argument("-bandwidth", nargs = '?',type=float, help="Remove data outside of the bandwidth [MHz]", default=0)
+    parser.add_argument("-fmin", nargs = '?',type=float, help="Minimum Frequency [GHz]", default=0)
+    parser.add_argument("-fmax", nargs = '?',type=float, help="Maximum Frequency [GHz]", default=np.inf)
+
     parser.add_argument("-ofolder",  type=str, help="Output folder", default=out_folder)
     parser.add_argument("-oformat",  type=str, help="Output format (.png, .jpg, .svg, .pdf etc.)", default=out_format)
 
@@ -90,6 +93,8 @@ if __name__ == "__main__":
     n_steps = args.steps
     every = args.every
     bandwidth = args.bandwidth
+    fmin = args.fmin
+    fmax = args.fmax
     header = args.header
     footer = args.footer
     out_folder = args.ofolder
@@ -121,7 +126,7 @@ if __name__ == "__main__":
     out_name = out_name.replace('.', '_')
 
     if extension == '.s2p':
-        freqs, S11, S21, S12, S22 = get_data_from_s2p(file, header=header, footer = footer, every = every, bandwidth = bandwidth*1E6)
+        freqs, S11, S21, S12, S22 = get_data_from_s2p(file, header=header, footer = footer, every = every, bandwidth = bandwidth*1E6, fmin = fmin*1E9, fmax=fmax*1E9)
 
         if no_fit:
             only_show_transmission(freqs, S11, S21, S12, S22,\
@@ -142,7 +147,7 @@ if __name__ == "__main__":
             fit_and_display_full_transmission(freqs, S11, S21, S12, S22,  n_steps = n_steps, method = method, loop_plan = loop_plan, scaling_factor = scaling_factor, prune_last_step=prune,\
             save_plots=save_plots, out_folder='', out_name = out_name, out_format=out_format, hide_plots = False, no_smith = False, quiet = False)
     else:
-        freqs, gammas = get_data_from_s1p(file, header=header, footer=footer, every = every, bandwidth = bandwidth*1E6)
+        freqs, gammas = get_data_from_s1p(file, header=header, footer=footer, every = every, bandwidth = bandwidth*1E6, fmin = fmin*1E9, fmax=fmax*1E9)
         if no_fit:
             only_show_S11(freqs, gammas,\
              save_plots=save_plots, out_folder=out_folder, out_format=out_format, out_name = out_name, no_smith = no_smith, scalar = scalar)

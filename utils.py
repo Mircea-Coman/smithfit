@@ -290,7 +290,7 @@ def plot_polar(gammas, Gamma_d, Gamma_l, center, radius, center_tan, radius_tan,
     plt.show()
     plt.pause(0.001)
 
-def get_data_from_s1p(file, header=0, footer=0, every=1, bandwidth=0):
+def get_data_from_s1p(file, header=0, footer=0, every=1, bandwidth=0, fmin=0, fmax=np.inf):
     try:
         network = rf.Network(file)
     except FileNotFoundError:
@@ -313,14 +313,18 @@ def get_data_from_s1p(file, header=0, footer=0, every=1, bandwidth=0):
 
         return freqs[bool_array], gammas[bool_array]
     else:
-        return freqs, gammas
+        print(np.shape(freqs))
+        mask_upper =  freqs < fmax
+        mask_lower =  fmin < freqs
+        mask = mask_upper & mask_lower
+        return freqs[mask], gammas[mask]
 
 
 def get_prune_range(freqs, f0, bw):
     return  (freqs < f0 + bw) * (f0 - bw  < freqs)
 
 
-def get_data_from_s2p(file, header = 0, footer = 0, every = 1, bandwidth = 0):
+def get_data_from_s2p(file, header = 0, footer = 0, every = 1, bandwidth = 0, fmin=0, fmax=np.inf):
     try:
         network = rf.Network(file)
     except:
@@ -345,7 +349,10 @@ def get_data_from_s2p(file, header = 0, footer = 0, every = 1, bandwidth = 0):
         bool_array =  get_prune_range(freqs, max_freq, bandwidth)
         return freqs[bool_array], S11[bool_array], S21[bool_array], S12[bool_array], S22[bool_array]
     else:
-        return freqs, S11, S21, S12, S22
+        mask_upper =  freqs < fmax
+        mask_lower =  fmin < freqs
+        mask = mask_upper & mask_lower
+        return freqs[mask], S11[mask], S21[mask], S12[mask], S22[mask]
 
         #def get_data_from_s1p(file, header, footer, every, comments, delimiter):
 #    data = np.genfromtxt(open(file,'rt').readlines()[::every], comments = comments, delimiter = delimiter, skip_header = header, skip_footer = footer)
