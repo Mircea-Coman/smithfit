@@ -84,7 +84,6 @@ def initialfit(F, S, N, Fres, Qseed):
     N2 = 2*N;
     M = np.zeros([N2, 5])
     G = np.zeros(N2)[:, np.newaxis]
-
     for i in range(N):
         i2 = i+N
         t = 2.0*(F[i]/Fres - 1.0)
@@ -147,7 +146,6 @@ def optimisefit7(F, S, N, Fseed, sv, loop_plan, Tol, quiet):
     iterations = 0
     PV = np.ones(N)     # default weights vector
     PV2 = np.ones(N2)
-
     m1 = sv[1]/sv[4]  # a''/QL
     m2 = -sv[0]/sv[4]
     m3 = sv[2]-m1
@@ -155,7 +153,7 @@ def optimisefit7(F, S, N, Fseed, sv, loop_plan, Tol, quiet):
     m5 = sv[4]
     Flwst = F[0]   # lowest freq. is a convenient normalisation factor.
     m6 = Flwst*m5/Fseed
-    m7 = 0.0
+    m7 = [0.0]
     last_op = 'n'
     del sv
     weighting_ratio = None
@@ -165,7 +163,7 @@ def optimisefit7(F, S, N, Fseed, sv, loop_plan, Tol, quiet):
     for op in loop_plan:
 
         if op == 'w':          # Fr                       QL
-            PV = angularwts(F, Flwst*float(m5)/float(m6), float(m5))
+            PV = angularwts(F, Flwst*float(m5[0])/float(m6[0]), float(m5[0]))
             weighting_ratio = max(PV)/min(PV)
             PV2 = np.concatenate((PV, PV))
             if not quiet: print('Op w, Calculate weights')
@@ -182,20 +180,20 @@ def optimisefit7(F, S, N, Fseed, sv, loop_plan, Tol, quiet):
             number_iterations += 1
             M = np.zeros([N2,7])
             G = np.zeros(N2)[:, np.newaxis]
-            c1 = complex(-m4,m3); c2 = complex(m1,m2); c3 = complex(m3,m4)
+            c1 = complex(-m4[0],m3[0]); c2 = complex(m1[0],m2[0]); c3 = complex(m3[0],m4[0])
             for i in range(N):
                 i2 = i+N
-                y = 1.0/complex(1.0,2*(m6*F[i]/Flwst-m5))
+                y = 1.0/complex(1.0,2*(m6[0]*F[i]/Flwst-m5[0]))
                 fdn = F[i]/Flwst - m5/m6
-                pj = complex(0.0, m7*fdn)
+                pj = complex(0.0, m7[0]*fdn[0])
                 expm7 = cmath.exp(pj)
                 ym = y*expm7
                 u = c1*y*ym*2
                 u2 = -u*F[i]/Flwst
                 v = (c2 + y*c3)* expm7;
                 u3 = v*fdn;
-                M[i,:] = expm7.real, -expm7.imag, ym.real, -ym.imag, u.real, u2.real, -u3.imag
-                M[i2,:] = expm7.imag, expm7.real, ym.imag, ym.real, u.imag, u2.imag, u3.real
+                M[i,:] = expm7.real, -expm7.imag, ym.real, -ym.imag, u.real, u2.real, -u3.imag[0]
+                M[i2,:] = expm7.imag, expm7.real, ym.imag, ym.real, u.imag, u2.imag, u3.real[0]
                 r = S[i] - v  # residual
                 G[i] = r.real; G[i2] = r.imag
 
@@ -216,8 +214,8 @@ def optimisefit7(F, S, N, Fseed, sv, loop_plan, Tol, quiet):
             SumDen = 0.0
             for i in range(N):
                 fdn = F[i]/Flwst - m5/m6;
-                den = complex(1.0, 2*(m6*F[i]/Flwst-m5))
-                pj = complex(0.0,m7*fdn)
+                den = complex(1.0, 2*(m6[0]*F[i]/Flwst-m5[0]))
+                pj = complex(0.0,m7[0]*fdn[0])
                 E = S[i] - (c2 + c3/den)*cmath.exp(pj)
                 ip = PV[i]
                 SumNum = SumNum + ip*(E.real*E.real + E.imag*E.imag)
@@ -251,10 +249,10 @@ def QCircleData(A, m1, m2, m3, m4):
 
       Also return calibrated gamma_V and gamma_T
     """
-    aqratio = complex(m1,m2)
-    b = complex(m1+m3, m2+m4)
+    aqratio = complex(m1[0],m2[0])
+    b = complex(m1[0]+m3[0], m2[0]+m4[0])
     caldiam = abs(b - aqratio)*A
-    calgamma_V =  complex(m1,m2)*A
+    calgamma_V =  complex(m1[0],m2[0])*A
     calgamma_T = b*A
     return caldiam, calgamma_V, calgamma_T
 
@@ -298,12 +296,13 @@ def GetUnloadedData(mv, scaling_factor_A, trmode, quiet):
         if auto_flag:
             if not quiet: print('Supplied scaling_factor_A is "Auto", so using fitted data to estimate it')
             scaling_factor_A = 1.0/abs(complex(m1,m2)) # scale to gammaV if 'AUTO'
+            # print(f"A = {scaling_factor_A}")
         cal_diam, cal_gamma_V, cal_gamma_T = QCircleData(scaling_factor_A, m1, m2, m3, m4)
         cal_touching_circle_diam = 2.0
         if not quiet: print('  Q-circle diam = %5.3f, touching_circle_diam = %5.3f' % (cal_diam, cal_touching_circle_diam))
         den = cal_touching_circle_diam/cal_diam - 1.0
         Q0 = m5*(1.0 + 1.0/den)
-        return 0, (Q0, 1.0/den, cal_diam, cal_touching_circle_diam, cal_gamma_V, cal_gamma_T)
+        return 0, (Q0, 1.0/den, cal_diam, cal_touching_circle_diam, cal_gamma_V, cal_gamma_T, scaling_factor_A)
 
 
     elif trmode=='reflection_method2':
@@ -317,7 +316,7 @@ def GetUnloadedData(mv, scaling_factor_A, trmode, quiet):
         if not quiet: print('  Q-circle diam = %5.3f, touching_circle_diam = %5.3f' % (cal_diam, cal_touching_circle_diam))
         den = cal_touching_circle_diam/cal_diam - 1.0
         Q0 = m5*(1.0 + 1.0/den)
-        return 0, (Q0, 1.0/den, cal_diam, cal_touching_circle_diam, cal_gamma_V, cal_gamma_T)
+        return 0, (Q0, 1.0/den, cal_diam, cal_touching_circle_diam, cal_gamma_V, cal_gamma_T, scaling_factor_A)
 
 
     elif trmode=='notch' or trmode=='absorption': # Absorption resonator measured by transmission

@@ -1,10 +1,14 @@
 import numpy as np
 from matplotlib import pyplot as plt
+import matplotlib.ticker as ticker
 import os
-
-from utils import *
+import sys
 
 this_file_path = os.path.dirname(__file__)
+
+# sys.path.append(this_file_path)
+from utils import *
+
 sys.path.append(os.path.join(this_file_path, 'MAT58_Scripts'))
 from test_qfit6 import fit_qfit6
 from test_qfit7 import fit_qfit7
@@ -14,7 +18,8 @@ from scipy.optimize import curve_fit
 from test_qfit6 import fit_qfit6
 from test_qfit7 import fit_qfit7
 from test_qfit8 import fit_qfit8
-
+from test_qfit10 import fit_qfit10
+from test_qfit10t import fit_qfit10t
 
 def fit_and_display_full_transmission(freqs, S11, S21, S12, S22,  n_steps = 3, loop_plan = 'fwfwfwc', scaling_factor = 1.0, method = 'kajfez', prune_last_step = False,\
  save_plots=False, out_folder='', out_name = 'output', out_format='png', hide_plots = False, no_smith = False, quiet = False):
@@ -49,6 +54,7 @@ def fit_and_display_full_transmission(freqs, S11, S21, S12, S22,  n_steps = 3, l
  beta2 = S22_dict["diam"] / den
  Q_L = S12_dict["Q_L"]
  Q_0 = 2 * S12_dict["Q_L"] / den
+
  d1 = S11_dict["diam"]
  d2 = S22_dict["diam"]
  d12 = S12_dict["diam"]
@@ -247,7 +253,7 @@ def fit_and_display_scalar(freqs, gammas, scale = 1, n_steps = 3,\
 
 
 def fit_and_display_kajfez(freqs, gammas, measurement_type = 'reflection', n_steps = 3, prune_last_step = False, lossless = False, \
- plot_every_step=False, save_plots=False, out_folder='', out_name = 'output', out_format='png', hide_plots = False, no_smith = False, quiet = False):
+ plot_every_step=False, save_plots=False, out_folder='', out_name = 'output', out_format='png', autozoom = False, hide_plots = False, no_smith = False, quiet = False):
     # head, out_name = os.path.split(file) #find file name
 
     plt.ion()
@@ -346,7 +352,7 @@ def fit_and_display_kajfez(freqs, gammas, measurement_type = 'reflection', n_ste
 
         if (plot_every_step or is_last_step) and not hide_plots:
             if no_smith:
-                plot_polar(gammas, Gamma_d, Gamma_l, center, radius, center_tan, radius_tan-0.00001, measurement_type, 'kajfez', freqs, f_L, params_Gamma, show_touching_circle = show_touching_circle)
+                plot_polar(gammas, Gamma_d, Gamma_l, center, radius, center_tan, radius_tan-0.00001, measurement_type, 'kajfez', freqs, f_L, params_Gamma, show_touching_circle = show_touching_circle, autozoom = autozoom)
             else:
                 plot_step(gammas, Gamma_d, Gamma_l, center, radius, center_tan, radius_tan-0.00001, measurement_type, 'kajfez', freqs, f_L, params_Gamma, show_touching_circle = show_touching_circle)
             fig_name = os.path.join(out_folder, f"smithfit_{out_name}_step{i+1}.{out_format}")
@@ -375,15 +381,18 @@ def fit_and_display_kajfez(freqs, gammas, measurement_type = 'reflection', n_ste
     return results_dict
 
 def fit_and_display_qfit(freqs, gammas, method, measurement_type = 'reflection_method1', loop_plan = 'fwfwfwc', scaling_factor = 'Auto',\
- save_plots=False, out_folder='', out_format='png', out_name = 'output', hide_plots = False, no_smith = False, quiet = False):
+ save_plots=False, out_folder='', out_format='png', out_name = 'output', autozoom = False, hide_plots = False, no_smith = False, quiet = False):
     plt.ion()
     if method == 'qfit6': function = fit_qfit6
     elif method == 'qfit7': function = fit_qfit7
     elif method == 'qfit8': function = fit_qfit8
+    elif method == 'qfit10': function = fit_qfit10
+    elif method == 'qfit10t': function = fit_qfit10t
+
     results_dict = function(freqs, gammas, quiet = quiet, loop_plan = loop_plan, scaling_factor_A = scaling_factor, trmode = measurement_type)
 
-    center = center_from_points_and_r(results_dict["Gamma_d"], results_dict["Gamma_l"], results_dict["diam"]/2.0)
-
+    # center = center_from_points_and_r(results_dict["Gamma_d"], results_dict["Gamma_l"], results_dict["diam"]/2.0)
+    center = (results_dict["Gamma_d"] + results_dict["Gamma_l"]) / 2.0
     if measurement_type == 'reflection_method1' or measurement_type == 'reflection_method2':
         touching_center = touching_circle_center(results_dict["Gamma_d"], center, results_dict["touch_diam"]/2.0)
     elif measurement_type == 'transmission':
@@ -395,15 +404,15 @@ def fit_and_display_qfit(freqs, gammas, method, measurement_type = 'reflection_m
     if not hide_plots:
         if no_smith:
              plot_polar(gammas, results_dict["Gamma_d"], results_dict["Gamma_l"], center, results_dict["diam"]/2.0, \
-              touching_center, results_dict["touch_diam"]/2.0-0.00001, measurement_type, method, freqs, results_dict["f_L"], results_dict["coeffs"], show_touching_circle = show_touching_circle)
+              touching_center, results_dict["touch_diam"]/2.0-0.00001, measurement_type, method, freqs, results_dict["f_L"], results_dict["coeffs"], show_touching_circle = show_touching_circle, autozoom = autozoom)
         else:
             plot_step(gammas, results_dict["Gamma_d"], results_dict["Gamma_l"], center, results_dict["diam"]/2.0, \
              touching_center, results_dict["touch_diam"]/2.0-0.00001, measurement_type, method, freqs, results_dict["f_L"], results_dict["coeffs"], show_touching_circle = show_touching_circle)
 
     results_dict["center"] = (results_dict["Gamma_d"] + results_dict["Gamma_l"]) / 2.0
-    results_dict["sigma_diam"] = np.NaN
-    results_dict["sigma_Q_L"] = np.NaN
-    results_dict["sigma_Q_0"] = np.NaN
+    results_dict["sigma_diam"] = np.nan
+    results_dict["sigma_Q_L"] = np.nan
+    results_dict["sigma_Q_0"] = np.nan
     if(save_plots):
         fig_name = os.path.join(out_folder, f"smithfit_{out_name}.{out_format}")
         plt.savefig(fig_name, dpi = 100)
@@ -428,7 +437,7 @@ def only_show_S11(freqs, gammas,\
         plt.plot(circle_unit.real, circle_unit.imag,  marker='None',color='k',linewidth=2, linestyle='-', label = 'Unit Circle')
     elif scalar:
         fig = plt.figure(figsize=(12, 8))
-        plt.plot(freqs*1E-9, 20*np.log10(np.abs(gammas)),  marker='None',color='black', linestyle='-', label = 'S11')
+        plt.plot(freqs*1E-9, 20*np.log10(np.abs(gammas)),  marker='None',color='black', linestyle='-', linewidth = '2', label = 'S11')
         plt.xlabel("Frequency [GHz]", fontsize=12)
         plt.ylabel("S-Parameter [dB]", fontsize=12)
     else:
@@ -449,25 +458,36 @@ def only_show_transmission(freqs, S11, S21, S12, S22,\
     fig_name = os.path.join(out_folder, f"smithfit_{out_name}.{out_format}")
 
     if scalar:
-        fig = plt.figure(figsize=(12, 8))
+        fig = plt.figure(figsize=(11, 8))
         ax = fig.subplots()
-        ax.plot(freqs*1E-9, 20*np.log10(np.abs(S11)),  marker='None',color='green', linestyle='-', label = 'S11')
-        ax.plot(freqs*1E-9, 20*np.log10(np.abs(S12)), marker='None',color='steelblue', linestyle='-', label = 'S12')
-        ax.plot(freqs*1E-9, 20*np.log10(np.abs(S22)),  marker='None',color='orange', linestyle='-', label = 'S22')
-        ax.legend()
-        plt.xlabel("Frequency [GHz]", fontsize=12)
-        plt.ylabel("S-Parameter [dB]", fontsize=12)
+        ax.plot(freqs*1E-9, 20*np.log10(np.abs(S11)),  marker='None',color='green', linestyle='-', linewidth = 6, label = r'$S_{11}$')
+        ax.plot(freqs*1E-9, 20*np.log10(np.abs(S12)), marker='None',color='steelblue', linestyle='-', linewidth = 6, label = r'$S_{12}$')
+        ax.plot(freqs*1E-9, 20*np.log10(np.abs(S22)),  marker='None',color='orange', linestyle='-', linewidth = 6, label = r'$S_{22}$')
+        leg = ax.legend(fontsize=40)
+        for line in leg.get_lines():
+            line.set_linewidth(6.0)
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(0.1))
+        plt.xticks(fontsize=40)
+        plt.yticks(fontsize=40)
+        ax.set_ylim([-49,1])
+        plt.xlabel("Frequency [GHz]", fontsize=40)
+        plt.ylabel("S-Parameter [dB]", fontsize=40)
+        plt.tight_layout()
     else:
         fig = plt.figure(figsize=(8, 8))
         thetas = np.linspace(0, 2*np.pi, num = 1000)
         circle_unit = 0+0j  + 1 * np.exp(1j * thetas)
         ax = fig.subplots(subplot_kw={'projection': 'polar'})
-        ax.plot(np.angle(S11), np.abs(S11),  marker='o',color='green', linestyle='None',markersize=5, label = 'S11')
-        ax.plot(np.angle(S12), np.abs(S12), marker='o',color='steelblue', linestyle='None',markersize=5, label = 'S12')
-        ax.plot(np.angle(S22), np.abs(S22),  marker='o',color='orange', linestyle='None',markersize=5, label = 'S22')
-        ax.legend(bbox_to_anchor=(1.08, 1.08))
-        ax.set_ylim([0,1])
+        ax.plot(np.angle(S11), np.abs(S11),  marker='o',color='green', linestyle='None',markersize=5, label = r'$S_{11}$')
+        ax.plot(np.angle(S12), np.abs(S12), marker='o',color='steelblue', linestyle='None',markersize=5, label = r'$S_{12}$')
+        ax.plot(np.angle(S22), np.abs(S22),  marker='o',color='orange', linestyle='None',markersize=5, label = r'$S_{22}$')
+#        ax.legend(bbox_to_anchor=(1.08, 1.08), fontsize=27,markerscale=4)
+        ax.legend(fontsize=26, markerscale=4, loc = 'upper left')
 
+        ax.set_ylim([0,1])
+        plt.xticks(fontsize=0)
+        plt.yticks(fontsize=0)
+        plt.tight_layout()
     if(save_plots): plt.savefig(fig_name, dpi = 100,bbox_inches='tight')
 
     # ax.plot(circle_unit.real, circle_unit.imag,  marker='None',color='k',linewidth=2, linestyle='-', label = 'Unit Circle')

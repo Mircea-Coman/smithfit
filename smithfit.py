@@ -75,15 +75,17 @@ if __name__ == "__main__":
     parser.add_argument("-header", nargs = '?', metavar='N',  type=int, help="Remove the first N data points", default=header)
     parser.add_argument("-footer", nargs = '?', metavar='N',  type=int, help="Remove the last N data points", default=footer)
     parser.add_argument("-every", nargs = '?', metavar='N', type=int, help="Sample every N data points", default=every)
-    parser.add_argument("-bandwidth", nargs = '?',type=float, help="Remove data outside of the bandwidth [MHz]", default=0)
+    parser.add_argument("-span", nargs = '?',type=float, help="Remove data outside of the span [MHz]", default=0)
     parser.add_argument("-fmin", nargs = '?',type=float, help="Minimum Frequency [GHz]", default=0)
     parser.add_argument("-fmax", nargs = '?',type=float, help="Maximum Frequency [GHz]", default=np.inf)
+    parser.add_argument("-delay", nargs='?', type=float, help="Line delay [ms]", default=0)
 
     parser.add_argument("-ofolder",  type=str, help="Output folder", default=out_folder)
     parser.add_argument("-oformat",  type=str, help="Output format (.png, .jpg, .svg, .pdf etc.)", default=out_format)
 
     parser.add_argument("--save-plots", action='store_true', help="If present, the software saves the plots as image files")
-    parser.add_argument("--polar", action='store_true', help="Polar plot")
+    #parser.add_argument("--polar", action='store_true', help="Polar plot")
+    parser.add_argument("--autozoom", action='store_true', help="Zoom on the resonance circle")
     parser.add_argument("--no-fit", action='store_true', help="Do not fit, only show the data")
     parser.add_argument("--scalar", action='store_true', help="Show the data in scalar form (only if no-fit is active)")
 
@@ -92,7 +94,7 @@ if __name__ == "__main__":
     method = args.method
     n_steps = args.steps
     every = args.every
-    bandwidth = args.bandwidth
+    span = args.span
     fmin = args.fmin
     fmax = args.fmax
     header = args.header
@@ -102,13 +104,16 @@ if __name__ == "__main__":
     plot_every_step=args.plot_steps
     save_plots = args.save_plots
     reflmode = args.reflmode
-    no_smith = args.polar
+    autozoom = args.autozoom
+    #no_smith = args.polar
+    no_smith = True 
     prune = args.prune
     lossless = args.lossless
     loop_plan = args.plan
     scaling_factor = args.scaling
     no_fit = args.no_fit
     scalar = args.scalar
+    delay = args.delay
 
     extension = os.path.splitext(file)[1]
     # if extension == '.s2p':
@@ -136,8 +141,8 @@ if __name__ == "__main__":
             print(f"Fitting TRANSMISSION data using the {method.upper()} mehtod...")
             if method == 'qfit6' or method == 'qfit7' or method == 'qfit8':
                 if (scaling_factor.upper()=='AUTO'):
-                    print('Auto scaling works only for reflection_method1! Changing scaling factor to 1.0')
                     scaling_factor = 1.0
+                    # print('Auto scaling works only for reflection_method1! Changing scaling factor to 1.0')
                 else:
                     try:
                       scaling_factor = float(scaling_factor)
@@ -147,7 +152,7 @@ if __name__ == "__main__":
             fit_and_display_full_transmission(freqs, S11, S21, S12, S22,  n_steps = n_steps, method = method, loop_plan = loop_plan, scaling_factor = scaling_factor, prune_last_step=prune,\
             save_plots=save_plots, out_folder='', out_name = out_name, out_format=out_format, hide_plots = False, no_smith = False, quiet = False)
     else:
-        freqs, gammas = get_data_from_s1p(file, header=header, footer=footer, every = every, bandwidth = bandwidth*1E6, fmin = fmin*1E9, fmax=fmax*1E9)
+        freqs, gammas = get_data_from_s1p(file, header=header, footer=footer, every = every, delay = delay, span = span*1E6, fmin = fmin*1E9, fmax=fmax*1E9)
         if no_fit:
             only_show_S11(freqs, gammas,\
              save_plots=save_plots, out_folder=out_folder, out_format=out_format, out_name = out_name, no_smith = no_smith, scalar = scalar)
@@ -155,7 +160,7 @@ if __name__ == "__main__":
             print(f"Fitting REFLECTION data using the {method.upper()} mehtod...")
             if method == 'kajfez':
                 fit_and_display_kajfez(freqs, gammas, out_name = out_name, measurement_type = 'reflection', prune_last_step=prune, lossless = lossless, \
-                n_steps=n_steps, no_smith = no_smith, plot_every_step=plot_every_step, save_plots = save_plots,\
+                n_steps=n_steps, no_smith = no_smith, autozoom = autozoom, plot_every_step=plot_every_step, save_plots = save_plots,\
                  out_folder=out_folder, out_format=out_format)
             elif method == 'qfit6' or 'qfit7' or 'qfit8':
                  if reflmode == 1: trmode = 'reflection_method1'
@@ -174,8 +179,8 @@ if __name__ == "__main__":
                        print("Invalid scaling factor! Accepted values are auto or a float value")
                        sys.exit(-1)
 
-                 fit_and_display_qfit(freqs, gammas, method, loop_plan = loop_plan, measurement_type = trmode, scaling_factor = scaling_factor, out_name = out_name,\
-                  out_folder=out_folder, no_smith = no_smith, out_format=out_format)
+                 fit_and_display_qfit(freqs, gammas, method, loop_plan = loop_plan, measurement_type = trmode, scaling_factor = scaling_factor, save_plots=save_plots, out_name = out_name,\
+                  out_folder=out_folder, no_smith = no_smith, autozoom = autozoom, out_format=out_format)
             elif method == 'scalar':
                 fit_and_display_scalar(freqs, gammas, scale = scale, n_steps = n_steps,\
                     plot_every_step=False, save_plots=save_plots, out_folder=out_folder, out_name = out_name, out_format=out_format)

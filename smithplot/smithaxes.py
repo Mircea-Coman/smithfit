@@ -473,11 +473,11 @@ class SmithAxes(Axes):
 
         if self._get_key("axes.normalize") and self._get_key("axes.normalize.label"):
             x, y = z_to_xy(self._moebius_inv_z(-1 - 1j))
-            box = self.text(x, y, "Z$_\mathrm{0}$ = %d$\,$%s" % (self._impedance, self._get_key("symbol.ohm")), ha="left", va="bottom")
+            # box = self.text(x, y, "Z$_\mathrm{0}$ = %d$\,$%s" % (self._impedance, self._get_key("symbol.ohm")), ha="left", va="bottom")
 
-            px = self._get_key("ytick.major.pad")
-            py = px + 0.5 * box.get_size()
-            box.set_transform(self._yaxis_correction + Affine2D().translate(-px, -py))
+            # px = self._get_key("ytick.major.pad")
+            # py = px + 0.5 * box.get_size()
+            # box.set_transform(self._yaxis_correction + Affine2D().translate(-px, -py))
 
         for grid in ['major', "minor"]:
             self.grid(b=self._get_key("grid.%s.enable" % grid), which=grid)
@@ -734,7 +734,7 @@ class SmithAxes(Axes):
                     pass
 
             # if (converted) arg is an ndarray of complex type, split it
-            if isinstance(arg, np.ndarray) and arg.dtype in [np.complex, np.complex128]:
+            if isinstance(arg, np.ndarray) and arg.dtype in [complex, np.complex128]:
                 new_args += z_to_xy(arg)
             else:
                 new_args += (arg,)

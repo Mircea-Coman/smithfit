@@ -90,7 +90,7 @@ def fit_qfit6(F, D, quiet=False, loop_plan = 'fwfwfwc', scaling_factor_A = 'Auto
     if measurement_type == 'reflection':
         # trmode='reflection_method2'
         ifail, p = GetUnloadedData(mv, scaling_factor_A, trmode, quiet)
-        Qo, k, cal_diam, cal_touching_circle_diam, cal_gamma_V, cal_gamma_T = p #Gamma_V = Gamma_d from kajfez and Gamma_T = Gamma_L
+        Qo, k, cal_diam, cal_touching_circle_diam, cal_gamma_V, cal_gamma_T, scaling_factor = p #Gamma_V = Gamma_d from kajfez and Gamma_T = Gamma_L
     elif measurement_type == 'transmission':
         # trmode = 'transmission'
         ifail, p = GetUnloadedData(mv, scaling_factor_A, trmode, quiet)
@@ -98,9 +98,9 @@ def fit_qfit6(F, D, quiet=False, loop_plan = 'fwfwfwc', scaling_factor_A = 'Auto
 
     if not quiet:
         print('\nOptimised solution:')
-        print(' Q_L = %6.2f ' % QL)
+        print(' Q_L = %6.2f ' % QL[0])
         if measurement_type == 'reflection': print(' k = %6.5f ' % k)
-        print(' Q_0 = %6.2f' % Qo)
+        print(' Q_0 = %6.2f' % Qo[0])
         print(f' f_L = {FL[0]*1E-9} GHz')
         print(' Number of iterations = %i' % number_iterations)
         if weighting_ratio is not None: print(' Weighting ratio = %5.3f' % weighting_ratio)
@@ -117,8 +117,9 @@ def fit_qfit6(F, D, quiet=False, loop_plan = 'fwfwfwc', scaling_factor_A = 'Auto
             "k":   k,
             "diam": cal_diam,
             "touch_diam": cal_touching_circle_diam,
-            "Gamma_d": cal_gamma_V,
-            "Gamma_l": cal_gamma_T,
+            "Gamma_d": cal_gamma_V/scaling_factor,
+            "Gamma_l": cal_gamma_T/scaling_factor,
+            "scaling_factor": scaling_factor,
         }
     elif measurement_type == 'transmission':
         results_dict = {

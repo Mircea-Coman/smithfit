@@ -170,7 +170,7 @@ def optimisefit8(F, S, N, Fseed, sv, loop_plan, Tol, quiet):
     for op in loop_plan:
 
         if op == 'w':          # Fr                       QL
-            PV = angularwts(F, Flwst*float(m5)/float(m6), float(m5))
+            PV = angularwts(F, Flwst*float(m5[0])/float(m6[0]), float(m5[0])) 
             weighting_ratio = max(PV)/min(PV)
             PV2 = np.concatenate((PV, PV))
             if not quiet: print('Op w, Calculate weights')
@@ -187,16 +187,16 @@ def optimisefit8(F, S, N, Fseed, sv, loop_plan, Tol, quiet):
             number_iterations += 1
             M = np.zeros([N2,8])
             G = np.zeros(N2)[:, np.newaxis]
-            c1 = complex(-m4,m3); c2 = complex(m1,m2); c3 = complex(m3,m4)
+            c1 = complex(-m4[0],m3[0]); c2 = complex(m1[0],m2[0]); c3 = complex(m3[0],m4[0])
             for i in range(N):
                 i2 = i+N
-                y = 1.0/complex(1.0,2*(m6*F[i]/Flwst-m5))
+                y = 1.0/complex(1.0,2*(m6[0]*F[i]/Flwst-m5[0]))
                 u = c1*y*y*2
                 u2 = -u*F[i]/Flwst
                 FL = Flwst*m5/m6;
                 t = 2*(F[i]-FL)/FL;
-                M[i,:] = 1.0, 0.0, y.real, -y.imag, u.real, u2.real, t, 0.0
-                M[i2,:] = 0.0, 1.0, y.imag, y.real, u.imag, u2.imag, 0.0, t
+                M[i,:] = 1.0, 0.0, y.real, -y.imag, u.real, u2.real, t[0], 0.0
+                M[i2,:] = 0.0, 1.0, y.imag, y.real, u.imag, u2.imag, 0.0, t[0]
                 v = c2 + c3*y + (m8+1j*m9)*t;
                 r = S[i] - v  # residual
                 G[i] = r.real; G[i2] = r.imag
@@ -217,14 +217,13 @@ def optimisefit8(F, S, N, Fseed, sv, loop_plan, Tol, quiet):
             SumNum = 0.0
             SumDen = 0.0
             for i in range(N):
-                den = complex(1.0,2*(m6*F[i]/Flwst-m5));
-                FL = Flwst*m5/m6;
+                den = complex(1.0,2*(m6[0]*F[i]/Flwst-m5[0]));
+                FL = Flwst*m5[0]/m6[0];
                 t = 2*(F[i]-FL)/FL;
                 ip = PV[i]
-                E = S[i] - complex(m1,m2) - complex(m8,m9)*t - complex(m3,m4)/den
+                E = S[i] - complex(m1[0],m2[0]) - complex(m8[0],m9[0])*t - complex(m3[0],m4[0])/den
                 SumNum = SumNum + ip*(E.real*E.real + E.imag*E.imag)
                 SumDen = SumDen + ip
-
             RMS_Error = math.sqrt(SumNum/SumDen);
             if not quiet:
                 if last_op =='c':
@@ -252,10 +251,10 @@ def QCircleData(A, m1, m2, m3, m4):
 
       Also return calibrated gamma_V and gamma_T
     """
-    aqratio = complex(m1,m2)
-    b = complex(m1+m3, m2+m4)
+    aqratio = complex(m1[0],m2[0])
+    b = complex(m1[0]+m3[0], m2[0]+m4[0])
     caldiam = abs(b - aqratio)*A
-    calgamma_V =  complex(m1,m2)*A
+    calgamma_V =  complex(m1[0],m2[0])*A
     calgamma_T = b*A
     return caldiam, calgamma_V, calgamma_T
 
@@ -290,7 +289,7 @@ def GetUnloadedData(mv, scaling_factor_A, trmode, quiet):
         if cal_diam == 1.0:
             return 1, 'Divide by zero forestalled in calculation of Qo'
         Q0 = m5/(1.0-cal_diam)
-        return 0, (Q0, cal_diam, cal_gamma_V, cal_gamma_T)
+        return 0, (Q0, cal_diam, cal_gamma_V, cal_gamma_T, scaling_factor_A)
 
     elif trmode=='reflection_method1':
         if auto_flag:
@@ -301,7 +300,7 @@ def GetUnloadedData(mv, scaling_factor_A, trmode, quiet):
         if not quiet: print('  Q-circle diam = %5.3f, touching_circle_diam = %5.3f' % (cal_diam, cal_touching_circle_diam))
         den = cal_touching_circle_diam/cal_diam - 1.0
         Q0 = m5*(1.0 + 1.0/den)
-        return 0, (Q0, 1.0/den, cal_diam, cal_touching_circle_diam, cal_gamma_V, cal_gamma_T)
+        return 0, (Q0, 1.0/den, cal_diam, cal_touching_circle_diam, cal_gamma_V, cal_gamma_T, scaling_factor_A)
 
     elif trmode=='reflection_method2':
         if auto_flag: return 1, 'Scaling factor must not be "Auto" for Method 2'
@@ -314,7 +313,7 @@ def GetUnloadedData(mv, scaling_factor_A, trmode, quiet):
         if not quiet: print('  Q-circle diam = %5.3f, touching_circle_diam = %5.3f' % (cal_diam, cal_touching_circle_diam))
         den = cal_touching_circle_diam/cal_diam - 1.0
         Q0 = m5*(1.0 + 1.0/den)
-        return 0, (Q0, 1.0/den, cal_diam, cal_touching_circle_diam, cal_gamma_V, cal_gamma_T)
+        return 0, (Q0, 1.0/den, cal_diam, cal_touching_circle_diam, cal_gamma_V, cal_gamma_T, scaling_factor_A)
 
 
     elif trmode=='notch' or trmode=='absorption': # By transmission

@@ -66,8 +66,9 @@ def fit_qfit7(F, D, quiet=False, loop_plan = 'fwfwfwc', scaling_factor_A = 'Auto
     # Qseed = mult*Fseed/(F[-1]-F[0])
 
     # Set Qseed: An order-of-magnitude estimate for Q-factor
-    mult = 5.0 # Not critical. A value of around 5.0 will work well for initial and optimised fits (Section 2.6).
+    mult = 5 # Not critical. A value of around 5.0 will work well for initial and optimised fits (Section 2.6).
     Qseed = mult*Fseed/(F[-1]-F[0])
+    Qseed = 90
     # Step 1: Initial unweighted fit --> solution vector
     N = len(F)
     sv = initialfit(F, D, N, Fseed, Qseed)
@@ -80,6 +81,7 @@ def fit_qfit7(F, D, quiet=False, loop_plan = 'fwfwfwc', scaling_factor_A = 'Auto
     m1,m2,m3,m4,QL,FL, m7a = mv
     Flwst = F[0]
     coeffs = [m1, m2, m3, m4, QL, QL*Flwst/FL, m7a * Flwst]
+    line_length = -1000*float(m7a[0])*2.99792458e8/(2.0*pi)
 
 
     # Now calculate unloaded Q-factor and some other useful quantities.
@@ -90,23 +92,27 @@ def fit_qfit7(F, D, quiet=False, loop_plan = 'fwfwfwc', scaling_factor_A = 'Auto
 
     if measurement_type == 'reflection' :
         ifail, p = GetUnloadedData(mv, scaling_factor_A, trmode, quiet)
-        Qo, k, cal_diam, cal_touching_circle_diam, cal_gamma_V, cal_gamma_T = p #Gamma_V = Gamma_d from kajfez and Gamma_T = Gamma_L
+        Qo, k, cal_diam, cal_touching_circle_diam, cal_gamma_V, cal_gamma_T, scaling_factor = p #Gamma_V = Gamma_d from kajfez and Gamma_T = Gamma_L
     elif measurement_type == 'transmission':
         ifail, p = GetUnloadedData(mv, scaling_factor_A, trmode, quiet)
+        scaling_factor = scaling_factor_A
         Qo, cal_diam, cal_gamma_V, cal_gamma_T = p #Gamma_V = Gamma_d from kajfez and Gamma_T = Gamma_L
 
 
     if not quiet:
         print('\nOptimised solution:')
-        print(' Q_L = %6.2f ' % QL)
+        print(' Q_L = %6.2f ' % QL[0])
         if measurement_type == 'reflection': print(' k = %6.5f ' % k)
-        print(' Q_0 = %6.2f' % Qo)
+        print(' Q_0 = %6.2f' % Qo[0])
         print(f' f_L = {FL[0]*1E-9} GHz')
         print(' Number of iterations = %i' % number_iterations)
         if weighting_ratio is not None: print(' Weighting ratio = %5.3f' % weighting_ratio)
         print(' RMS_Error = %10.8f' % RMS_Error)
-        sqrt_eps = 1.3 # Average for and ptfe sections
-        print(' Fitted length of uncalibrated line = ',-float(m7a)*2.99792458e2/(4.0*pi*1.3),'mm')
+        # print(' Fitted length of uncalibrated line = ',-float(m7a)*2.99792458e2/(4.0*pi*1.3),'mm')
+        # print(' Fitted length of uncalibrated line = ',-float(m7a)*2.99792458e2/(4.0*pi*1.3),'mm')
+        print(' m7 = ',float(m7a[0]))
+        print(' Fitted length of uncalibrated line = ', line_length,'mm')
+
         print()
 
     if measurement_type == 'reflection':
@@ -118,8 +124,10 @@ def fit_qfit7(F, D, quiet=False, loop_plan = 'fwfwfwc', scaling_factor_A = 'Auto
             "k":   k,
             "diam": cal_diam,
             "touch_diam": cal_touching_circle_diam,
-            "Gamma_d": cal_gamma_V,
-            "Gamma_l": cal_gamma_T,
+            "Gamma_d": cal_gamma_V/scaling_factor,
+            "Gamma_l": cal_gamma_T/scaling_factor,
+            "scaling_factor": scaling_factor,
+            "line_length": line_length,
         }
     elif measurement_type == 'transmission':
         results_dict = {

@@ -28,6 +28,21 @@ def qfit8_fit_function(freqs, m, f_L):
     gamma = (m[0] + 1j * m[1] +  (m[6] + 1j * m[7]) * t + (m[2] + 1j * m[3]) * y)
     return gamma
 
+def qfit10_fit_function(freqs, m, f_L):
+    f_wlst = freqs[0]
+    t = 2 * (freqs-f_L) / f_L
+    y = 1.0 / (1 + 2j * (m[5] * freqs / f_wlst - m[4]))
+    gamma = (m[0] + 1j * m[1] +  (m[6] + 1j * m[7]) * t +  (m[8] + 1j * m[9]) * t**2 + (m[2] + 1j * m[3]) * y)
+    return gamma
+
+def qfit10t_fit_function(freqs, m, f_L):
+    f_wlst = freqs[0]
+    #tsin = (freqs-f_L)/(freqs[-1] - freqs[0]);
+    t = 2 * (freqs-f_L) / f_L
+    y = 1.0 / (1 + 2j * (m[5] * freqs / f_wlst - m[4]))
+    gamma = (m[0] + 1j * m[1] +  (m[6] + 1j * m[7]) * np.sin (m[8] * t + m[9]) + (m[2] + 1j * m[3]) * y)
+    return gamma
+
 def gamma_fit_function(t, a):
     return np.true_divide(a[0] * t + a[1], a[2] * t + 1)
 
@@ -40,7 +55,7 @@ def z_to_Gamma(z):
 # Fit using Gamma = (a1 * t + a2) / (a3 * t + 1)
 def fit_gamma(ts, gammas, weights):
     shape = np.shape(ts)
-    e = np.empty([shape[0],3], dtype = 'complex_')
+    e = np.empty([shape[0],3], dtype = 'complex')
     e[:,0] = ts
     e[:,1] = np.ones(shape)
     e[:,2] = -ts * gammas
@@ -65,7 +80,7 @@ def fit_gamma(ts, gammas, weights):
 
 def fit_gamma_scalar(ts, abs_gammas_sq, weights):
     shape = np.shape(ts)
-    e = np.empty([shape[0],4], dtype = 'complex_')
+    e = np.empty([shape[0],4], dtype = 'complex')
     e[:,0] = -ts**2 * abs_gammas_sq
     e[:,1] = ts**2
     e[:,2] = np.ones(shape[0])
@@ -93,7 +108,7 @@ def fit_gamma_scalar(ts, abs_gammas_sq, weights):
 
 def make_C(e, P):
     shape = np.shape(e)
-    C = np.empty([shape[1],shape[1]],dtype = 'complex_')
+    C = np.empty([shape[1],shape[1]],dtype = 'complex')
     for i in range(0, shape[1]):
         for j in range(0, shape[1]):
             projected_e_j = P*e[:,j]
@@ -102,7 +117,7 @@ def make_C(e, P):
 
 def make_g(gammas, e, P):
     shape = np.shape(e)
-    g = np.empty([shape[1],1],dtype = 'complex_')
+    g = np.empty([shape[1],1],dtype = 'complex')
     for i in range(0, shape[1]):
         projected_gammas = P*gammas
         g[i,0] = np.matmul(np.matrix.conjugate(e[:,i]), projected_gammas)
@@ -160,12 +175,15 @@ def touching_circle_center(Gamma_s, center, radius_tan):
 
 
 def find_tangent_circle(Gamma_d, Gamma_l, center, radius):
-    Gamma_s = Gamma_d
+   # Gamma_s = Gamma_d
 #    cosPhi1 = (np.abs(Gamma_s)**2 + 4*radius ** 2 - np.abs(Gamma_l) ** 2)/(4 * radius * np.abs(Gamma_s))
-    cosPhi = np.real(Gamma_d * np.conj(Gamma_d-center)) / (np.abs(Gamma_d * (Gamma_d-center)))
-    radius_tan = (1 - np.absolute(Gamma_s)**2)/(1 - np.absolute(Gamma_s) * cosPhi)/2.0
-    center_tan = touching_circle_center(Gamma_s, center, radius_tan)
-    return center_tan, radius_tan
+    #cosPhi = np.real(Gamma_d * np.conj(Gamma_d-center)) / (np.abs(Gamma_d * (Gamma_d-center)))
+		#cosPhi = np.real(Gamma_d * np.conj(Gamma_d-center)) / (np.abs(Gamma_d * (Gamma_d-center)))
+		cosPhi = (np.abs(Gamma_d)**2 + 4*radius**2 - np.abs(Gamma_l)**2) / (4 * radius * np.abs(Gamma_d))
+
+		radius_tan = (1 - np.absolute(Gamma_d)**2)/(1 - np.absolute(Gamma_d) * cosPhi)/2.0
+		center_tan = touching_circle_center(Gamma_d, center, radius_tan)
+		return center_tan, radius_tan
 
 def delta(freq, freq0):
     return freq / freq0 - np.true_divide(freq0,freq)
@@ -199,7 +217,7 @@ def center_from_points_and_r(z1, z2, r):
 def plot_step(gammas, Gamma_d, Gamma_l, center, radius, center_tan, radius_tan, measurement_type, method, freqs, f_L, fit_params, show_touching_circle = True):
 
     thetas = np.linspace(0, 2*np.pi, num = 1000)
-
+    
     if method == 'kajfez':
             circle_zs = center + radius * np.exp(1j * thetas)
     elif method == 'qfit6':
@@ -211,6 +229,12 @@ def plot_step(gammas, Gamma_d, Gamma_l, center, radius, center_tan, radius_tan, 
     elif method == 'qfit8':
             fit_freqs = np.linspace(min(freqs), max(freqs), num = 1000)
             circle_zs = qfit8_fit_function(freqs, fit_params, f_L)
+    elif method == 'qfit10':
+            fit_freqs = np.linspace(min(freqs), max(freqs), num = 1000)
+            circle_zs = qfit10_fit_function(freqs, fit_params, f_L)
+    elif method == 'qfit10t':
+            fit_freqs = np.linspace(min(freqs), max(freqs), num = 1000)
+            circle_zs = qfit10t_fit_function(freqs, fit_params, f_L)
 
     line_t = np.linspace(0,1,num = 1000)
     line1_zs = (1 - line_t) * Gamma_l + Gamma_d * line_t
@@ -219,29 +243,33 @@ def plot_step(gammas, Gamma_d, Gamma_l, center, radius, center_tan, radius_tan, 
 
     fig = plt.figure(figsize=(8, 8))
     ax = plt.subplot(1, 1, 1, projection='smith')
-    ax.set_aspect('equal', adjustable='box')
-    plt.plot(line1_zs, datatype=SmithAxes.S_PARAMETER,  marker='None',color='k',linewidth=2, linestyle='-')
-    plt.plot(line2_zs, datatype=SmithAxes.S_PARAMETER,  marker='None',color='k',linewidth=2, linestyle='-')
-    plt.plot(gammas, datatype=SmithAxes.S_PARAMETER,  marker='o',color='k', linestyle='None',markersize=5, label = 'Data points')
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20)
 
-    plt.plot(circle_zs, datatype=SmithAxes.S_PARAMETER,  marker='None', color='red',linewidth=2, linestyle='-', label = 'Fit circle')
-    plt.plot([center], datatype=SmithAxes.S_PARAMETER,  marker='o',color='red',linewidth=2, linestyle='None',markersize=10, label="Center of fit circle")
+    ax.set_aspect('equal', adjustable='box')
+    # plt.plot(line1_zs, datatype=SmithAxes.S_PARAMETER,  marker='None',color='k',linewidth=2, linestyle='-')
+    # plt.plot(line2_zs, datatype=SmithAxes.S_PARAMETER,  marker='None',color='k',linewidth=2, linestyle='-')
+    plt.plot(gammas, datatype=SmithAxes.S_PARAMETER,  marker='o',color='k', linestyle='None',markersize=10, label = r'Measured $S_{11}$')
+
+    plt.plot(circle_zs, datatype=SmithAxes.S_PARAMETER,  marker='None', color='red',linewidth=3, linestyle='-', label = 'Fit circle')
+    # plt.plot([center], datatype=SmithAxes.S_PARAMETER,  marker='o',color='red',linewidth=2, linestyle='None',markersize=10, label="Center of fit circle")
     if (measurement_type == 'reflection' or  measurement_type == 'reflection_method1' or measurement_type == 'reflection_method2') and show_touching_circle:
         plt.plot(circle_tan_zs, datatype=SmithAxes.S_PARAMETER,  marker='None',color='forestgreen',linewidth=2, linestyle='-.', label = 'Touching Circle')
     # plt.plot([gamma_int], datatype=SmithAxes.S_PARAMETER,  marker='o',color='darkviolet',linewidth=2, linestyle='None',markersize=10, label="Center of fit circle")
 
-    plt.plot([Gamma_d], datatype=SmithAxes.S_PARAMETER,  marker='o',color='forestgreen',linewidth=2, linestyle='None',markersize=10, label="$\Gamma_d$")
-    plt.plot([Gamma_l], datatype=SmithAxes.S_PARAMETER,  marker='o',color='darkorange',linewidth=2, linestyle='None',markersize=10, label="$\Gamma_l$")
-    ax.legend(bbox_to_anchor=(1.08, 1.08))
+    plt.plot([Gamma_d], datatype=SmithAxes.S_PARAMETER,  marker='o',color='forestgreen',linewidth=2, linestyle='None',markersize=10, label=r"$\Gamma_d$")
+    plt.plot([Gamma_l], datatype=SmithAxes.S_PARAMETER,  marker='o',color='darkorange',linewidth=2, linestyle='None',markersize=10, label=r"$\Gamma_l$")
+    # ax.legend(bbox_to_anchor=(1.08, 1.08), fontsize=20)
+    ax.legend(fontsize=25)
 
     lim = 1E-3
     ax.set_xlim([-lim, lim])
     ax.set_ylim([-lim, lim])
-
+    plt.tight_layout()
     plt.show()
     plt.pause(0.001)
 
-def plot_polar(gammas, Gamma_d, Gamma_l, center, radius, center_tan, radius_tan, measurement_type, method, freqs, f_L, fit_params, show_touching_circle = True):
+def plot_polar(gammas, Gamma_d, Gamma_l, center, radius, center_tan, radius_tan, measurement_type, method, freqs, f_L, fit_params, autozoom = False, show_touching_circle = True):
     thetas = np.linspace(0, 2*np.pi, num = 1000)
 
     if method == 'kajfez':
@@ -255,42 +283,69 @@ def plot_polar(gammas, Gamma_d, Gamma_l, center, radius, center_tan, radius_tan,
     elif method == 'qfit8':
             fit_freqs = np.linspace(min(freqs), max(freqs), num = 1000)
             circle_zs = qfit8_fit_function(freqs, fit_params, f_L)
-
+    elif method == 'qfit10':
+            fit_freqs = np.linspace(min(freqs), max(freqs), num = 1000)
+            circle_zs = qfit10_fit_function(freqs, fit_params, f_L)
+    elif method == 'qfit10t':
+            fit_freqs = np.linspace(min(freqs), max(freqs), num = 1000)
+            circle_zs = qfit10t_fit_function(freqs, fit_params, f_L)
     # circle_zs = center + radius * np.exp(1j * thetas)
     line_t = np.linspace(0,1,num = 1000)
-    line1_zs = (1 - line_t) * Gamma_l + Gamma_d * line_t
-    line2_zs = (1 - line_t) * Gamma_l + 0 * line_t
+
     circle_tan_zs = center_tan + radius_tan * np.exp(1j * thetas)
     circle_unit = 0+0j  + 1 * np.exp(1j * thetas)
     fig = plt.figure(figsize=(8, 8))
-    # ax = plt.subplot(1, 1, 1, projection='smith')
+
     ax = plt.subplot(1, 1, 1)
-    # rect = [0, 0, 1, 1]
-    #
-    # x_polar = fig.add_axes(rect, polar=True, frameon=False)
+
+    # Draw circles
+    for r in [0.2, 0.4, 0.6, 0.8, 1.0]:
+        circle = plt.Circle((0, 0), r, color='gray', linestyle='--', alpha=0.4, fill=False)
+        ax.add_patch(circle)
+        #ax.text(r, 0.02, f'{r}', color='gray', fontsize=8)  # Radial labels
+
+    # Draw angles
+    for angle in np.arange(0, 360, 45):
+	    rad = np.deg2rad(angle)
+	    ax.plot([0, np.cos(rad)], [0, np.sin(rad)], color='gray', linestyle='--', alpha=0.4,)
 
     ax.set_aspect('equal', adjustable='box')
     plt.plot(np.real(gammas), np.imag(gammas),  marker='o',color='k', linestyle='None',markersize=5, label = 'Data points')
     plt.plot(circle_zs.real, circle_zs.imag,  marker='None',color='red',linewidth=2, linestyle='-', label = 'Fit circle')
     plt.plot(circle_unit.real, circle_unit.imag,  marker='None',color='k',linewidth=2, linestyle='-', label = 'Unit Circle')
+
+    plt.plot([Gamma_l.real, Gamma_d.real], [Gamma_l.imag, Gamma_d.imag],  marker='None',color='k',linewidth=2, linestyle='-')
+    plt.plot([Gamma_l.real, 0], [Gamma_l.imag, 0],  marker='None',color='k',linewidth=2, linestyle='-')
+    plt.plot([Gamma_d.real, 0], [Gamma_d.imag, 0],  marker='None',color='k',linewidth=2, linestyle='-')
     plt.plot([center.real], [center.imag],  marker='o',color='red',linewidth=2, linestyle='None',markersize=10, label="Center of fit circle")
-    plt.plot(line1_zs.real,line1_zs.imag,  marker='None',color='k',linewidth=2, linestyle='-')
-    plt.plot(line2_zs.real,line2_zs.imag,  marker='None',color='k',linewidth=2, linestyle='-')
+
     if (measurement_type == 'reflection' or  measurement_type == 'reflection_method1' or measurement_type == 'reflection_method2') and show_touching_circle:
         plt.plot(circle_tan_zs.real,circle_tan_zs.imag,  marker='None',color='forestgreen',linewidth=2, linestyle='-.', label = 'Tangent Circle')
-    # # plt.plot([gamma_int], datatype=SmithAxes.S_PARAMETER,  marker='o',color='darkviolet',linewidth=2, linestyle='None',markersize=10, label="Center of fit circle")
-    plt.plot([Gamma_d.real],[Gamma_d.imag], marker='o',color='forestgreen',linewidth=2, linestyle='None',markersize=10, label="$\Gamma_d$")
-    plt.plot([Gamma_l.real],[Gamma_l.imag],  marker='o',color='darkorange',linewidth=2, linestyle='None',markersize=10, label="$\Gamma_l$")
-    ax.legend(loc = "upper right")
-    #
-    # lim = 1E-3
-    # ax.set_xlim([-lim, lim])
-    # ax.set_ylim([-lim, lim])
+
+
+    plt.plot([Gamma_d.real],[Gamma_d.imag], marker='o',color='forestgreen',linewidth=2, linestyle='None',markersize=10, label=r"$\Gamma_d$")
+    plt.plot([Gamma_l.real],[Gamma_l.imag],  marker='o',color='darkorange',linewidth=2, linestyle='None',markersize=10, label=r"$\Gamma_l$")
+    #ax.legend(loc = "best")
+		
+    if autozoom:
+        min_re = np.min([np.min(circle_zs.real), Gamma_l.real, Gamma_d.real])
+        max_re = np.max([np.max(circle_zs.real), Gamma_l.real, Gamma_d.real])
+
+        min_imag = np.min([np.min(circle_zs.imag), Gamma_l.imag, Gamma_d.imag])
+        max_imag = np.max([np.max(circle_zs.imag), Gamma_l.imag, Gamma_d.imag])
+
+        max_delta = np.max([np.abs(max_re - min_re), np.abs(max_imag - min_imag)]) * 1.1 * 0.5
+        center = 0.5 * (max_re + min_re) + 0.5j * (max_imag + min_imag)
+
+		  #
+		  # lim = 1E-3
+        ax.set_xlim([center.real-max_delta, center.real+max_delta])
+        ax.set_ylim([center.imag-max_delta, center.imag+max_delta])
 
     plt.show()
     plt.pause(0.001)
 
-def get_data_from_s1p(file, header=0, footer=0, every=1, bandwidth=0, fmin=0, fmax=np.inf):
+def get_data_from_s1p(file, header=0, footer=0, every=1, delay = 0, span=0, fmin=0, fmax=np.inf):
     try:
         network = rf.Network(file)
     except FileNotFoundError:
@@ -299,6 +354,8 @@ def get_data_from_s1p(file, header=0, footer=0, every=1, bandwidth=0, fmin=0, fm
     except:
         print('Can\'t read this file! Make sure that the file has valid touchstone format headers!')
         sys.exit(-1)
+    network = network.delay(-delay, unit = 'mm')
+
     if footer == 0:
         freqs = network.f[header::every]
         gammas = network.s[header::every, 0, 0]
@@ -306,14 +363,13 @@ def get_data_from_s1p(file, header=0, footer=0, every=1, bandwidth=0, fmin=0, fm
         freqs = network.f[header:-footer:every]
         gammas = network.s[header:-footer:every, 0, 0]
 
-    if bandwidth != 0:
+    if span != 0:
         abs_gammas = np.abs(gammas)
         min_freq = freqs[np.argmin(abs_gammas)]
-        bool_array =  get_prune_range(freqs, min_freq, bandwidth)
-
+        bool_array =  get_prune_range(freqs, min_freq, span)
         return freqs[bool_array], gammas[bool_array]
     else:
-        print(np.shape(freqs))
+        #print(np.shape(freqs))
         mask_upper =  freqs < fmax
         mask_lower =  fmin < freqs
         mask = mask_upper & mask_lower
@@ -324,12 +380,13 @@ def get_prune_range(freqs, f0, bw):
     return  (freqs < f0 + bw) * (f0 - bw  < freqs)
 
 
-def get_data_from_s2p(file, header = 0, footer = 0, every = 1, bandwidth = 0, fmin=0, fmax=np.inf):
+def get_data_from_s2p(file, header = 0, footer = 0, every = 1, delay = 0, bandwidth = 0, fmin=0, fmax=np.inf):
     try:
         network = rf.Network(file)
     except:
         print('Can\'t read the file! Make sure that the file exists and that it is has valid touchstone format headers!')
         sys.exit(-1)
+        network = network.delay(-delay, unit = 'mm')
     if footer == 0:
         freqs = network.f[header::every]
         S11 = network.s[header::every, 0, 0]
@@ -345,7 +402,8 @@ def get_data_from_s2p(file, header = 0, footer = 0, every = 1, bandwidth = 0, fm
 
     if bandwidth != 0:
         abs_S21 = np.abs(S21)
-        max_freq = freqs[np.argmax(abs_S21)]
+        abs_S11 = np.abs(S11)
+        max_freq = freqs[np.argmin(abs_S11)]
         bool_array =  get_prune_range(freqs, max_freq, bandwidth)
         return freqs[bool_array], S11[bool_array], S21[bool_array], S12[bool_array], S22[bool_array]
     else:
